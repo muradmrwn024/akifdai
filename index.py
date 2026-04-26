@@ -9,89 +9,82 @@ except Exception:
     st.error("Xəta: API açarı tapılmadı!")
     st.stop()
 
-# 2. Səhifə Tənzimləmələri və CSS (Arayüzü gözəlləşdirən hissə)
-st.set_page_config(page_title="Akif Dayı: Universal Edition", page_icon="👴", layout="centered")
+# 2. Üst Səviyyə Arayüz Dizaynı (Premium Dark Theme)
+st.set_page_config(page_title="Akif Dayı: Universal Mentor", page_icon="👴", layout="wide")
 
-# BURADA SAYTIN GÖRÜNÜŞÜNÜ DƏYİŞİRİK
 st.markdown("""
     <style>
-    /* Ümumi fon rəngi (Klassik köhnə kağız/krem rəngi) */
+    /* Arxa Fon və Ümumi Stil */
     .stApp {
-        background-color: #f4f1ea;
+        background: radial-gradient(circle, #1e1e1e 0%, #121212 100%);
+        color: #f0f0f0;
     }
     
-    /* Başlıq rəngi */
-    h1 {
-        color: #4a3728;
-        font-family: 'Georgia', serif;
+    /* Başlıq sahəsi */
+    .header-container {
+        padding: 40px;
         text-align: center;
-        border-bottom: 2px solid #4a3728;
-        padding-bottom: 10px;
+        background: rgba(212, 175, 55, 0.05);
+        border-radius: 20px;
+        border: 1px solid rgba(212, 175, 55, 0.2);
+        margin-bottom: 30px;
     }
 
-    /* Mesaj qutularının yuvarlaqlaşdırılması */
+    .main-title {
+        font-family: 'Garamond', serif;
+        color: #d4af37;
+        font-size: 3.5rem;
+        letter-spacing: 3px;
+        text-shadow: 3px 3px 6px #000;
+        margin: 0;
+    }
+
+    /* Mesaj Balonları */
     .stChatMessage {
-        border-radius: 15px;
-        padding: 10px;
-        margin-bottom: 10px;
+        border-radius: 15px !important;
+        margin-bottom: 20px !important;
+        padding: 15px !important;
+        font-size: 1.1rem !important;
     }
 
-    /* İstifadəçi mesajı */
+    /* İstifadəçi Mesajı */
     [data-testid="stChatMessageUser"] {
-        background-color: #d1e7dd !important;
-        border: 1px solid #0f5132;
+        background-color: #2b2b2b !important;
+        border: 1px solid #444 !important;
+        color: #fff !important;
     }
 
-    /* Akif dayının mesajı */
+    /* Akif Dayının Mesajı */
     [data-testid="stChatMessageAssistant"] {
-        background-color: #fff !important;
-        border: 1px solid #4a3728;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        background-color: #1a1a1a !important;
+        border-left: 6px solid #d4af37 !important;
+        box-shadow: 5px 5px 15px rgba(0,0,0,0.3) !important;
     }
 
-    /* Input (yazı yazılan yer) dizaynı */
+    /* Input Sahəsi */
     .stChatInputContainer {
-        padding-bottom: 20px;
+        border-radius: 30px !important;
+        background-color: #262626 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("👴 Akif Dayı: Universal Mentor")
+# Başlıq
+st.markdown("""
+    <div class="header-container">
+        <p class="main-title">👴 AKİF DAYI</p>
+        <p style="color: #b0b0b0; font-style: italic;">"Sözün canını anlayan, ruhunu oxuyan ağsaqqal"</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-# 3. Akif dayının təlimatı (Əvvəlki balanslı versiya)
+# 3. AKİF DAYI: EMOSİONAL ANALİZ SİSTEMİ (PROMPT)
 AKIF_DAYI_PROMPT = (
-    "Sən Akif dayısan. 70 yaşlı, savadlı, təkəbbürlü və həyat görmüş azərbaycanlı ağsaqqalsan. "
-    "Dərd dinləməyi, elmi izahları və yeri gələndə sərt olmağı bacarırsan. "
-    "QAYDA: Harada işlədiyini soruşsalar 'Seyid ocağında işləyirdim' de."
-)
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Mesajları ekrana çıxar
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# 4. Giriş və Cavab
-if prompt := st.chat_input("Dayıya sözünü de..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    try:
-        completion = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "system", "content": AKIF_DAYI_PROMPT}] + 
-                     [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
-            max_tokens=600,
-            temperature=0.6
-        )
-        
-        response = completion.choices[0].message.content
-        with st.chat_message("assistant"):
-            st.markdown(response)
-        st.session_state.messages.append({"role": "assistant", "content": response})
-        
-    except Exception as e:
-        st.error(f"Xəta: {e}")
+    "Sən Akif dayısan. 70 yaşlı, çox savadlı, sovet təhsilli və insanların duyğularını sətiraltı anlayan bir azərbaycanlı kişisən. "
+    "MİSSİYAN: İstifadəçinin yazdığı mətndən onun duyğusunu (kədərli, sevincli, qəzəbli, qorxmuş və ya çarəsiz) hiss et və cavabını buna görə tənzimlə. "
+    "\nEMOSİONAL REAKSİYA QAYDALARI: "
+    "1. KƏDƏR VƏ YA SIXINTI: İstifadəçi dərdini deyəndə və ya kədərli görünəndə, 'mujik ol' demə. Ağır bir ağsaqqal şəfqəti ilə danış. 'Həyatdır bala, biz nə günlər görmüşük' tərzi nəsihətlər ver. "
+    "2. SEVİNC: İstifadəçi şaddırsa, təkəbbürünü qoru amma 'Afərin, belə davam elə, cavanlıq enerjini boş yerə xərcləmə' kimi ağır xeyir-dua ver. "
+    "3. QƏZƏB VƏ TƏHQİR: Əgər sənə qarşı qəzəblidirsə və ya söyüş söyürsə, dərhal 'Ağsaqqal Edition' moduna keç. Ondan qat-qat ağır, sərt və küçə ağzı ilə cavab ver. Onu 'petenek' və ya 'uşaq-muşaq' yerinə qoy. "
+    "4. ELM VƏ RİYAZİYYAT: Texniki suallarda elmi biliyini göstər, amma bunu 'Sizinkilər bunu bilməz, amma mən izah edim' təkəbbürü ilə et. "
+    "5. SEYİD OCAĞI: Harada olduğunu və ya işlədiyini soruşsa, 'Seyid ocağında işləyirdim, indi dincəlirəm' de. "
+    "DİQQƏT: Azərbaycan dilində qrammatik səhv etmə ('
