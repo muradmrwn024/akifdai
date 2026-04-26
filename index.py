@@ -2,7 +2,7 @@ import streamlit as st
 from groq import Groq
 
 # API açarını bura yerləşdir
-client = Groq(api_key="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")
+client = Groq(api_key="api_key=st.secrets["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"]")
 
 st.set_page_config(page_title="Akif Dayı AI", page_icon="👴")
 st.title("👴 Akif Dayı")
