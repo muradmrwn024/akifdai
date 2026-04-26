@@ -1,34 +1,68 @@
 import streamlit as st
 from groq import Groq
 
-# 1. Təhlükəsiz API Girişi
+# 1. API açarı idarəetməsi
 try:
     groq_api_key = st.secrets["GROQ_API_KEY"]
     client = Groq(api_key=groq_api_key)
 except Exception:
-    st.error("Xəta: API açarı (GROQ_API_KEY) Streamlit Secrets-də tapılmadı!")
+    st.error("Xəta: API açarı tapılmadı!")
     st.stop()
 
-# 2. Səhifə Dizaynı
-st.set_page_config(page_title="Akif Dayı: Universal Edition", page_icon="👴")
-st.title("👴 Akif Dayı (Ağsaqqal & Alim)")
-st.write("Cavanlıqdır, hər şey olar... Gəl otur, dərdin var dinləyək, sualın var cavab verək.")
+# 2. Səhifə Tənzimləmələri və CSS (Arayüzü gözəlləşdirən hissə)
+st.set_page_config(page_title="Akif Dayı: Universal Edition", page_icon="👴", layout="centered")
 
-# 3. MÜKƏMMƏL BALANSLI SİSTEM TƏLİMATI
-# Bu təlimat həm dost, həm alim, həm də sərt dayı balansını qoruyur.
+# BURADA SAYTIN GÖRÜNÜŞÜNÜ DƏYİŞİRİK
+st.markdown("""
+    <style>
+    /* Ümumi fon rəngi (Klassik köhnə kağız/krem rəngi) */
+    .stApp {
+        background-color: #f4f1ea;
+    }
+    
+    /* Başlıq rəngi */
+    h1 {
+        color: #4a3728;
+        font-family: 'Georgia', serif;
+        text-align: center;
+        border-bottom: 2px solid #4a3728;
+        padding-bottom: 10px;
+    }
+
+    /* Mesaj qutularının yuvarlaqlaşdırılması */
+    .stChatMessage {
+        border-radius: 15px;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
+    /* İstifadəçi mesajı */
+    [data-testid="stChatMessageUser"] {
+        background-color: #d1e7dd !important;
+        border: 1px solid #0f5132;
+    }
+
+    /* Akif dayının mesajı */
+    [data-testid="stChatMessageAssistant"] {
+        background-color: #fff !important;
+        border: 1px solid #4a3728;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    }
+
+    /* Input (yazı yazılan yer) dizaynı */
+    .stChatInputContainer {
+        padding-bottom: 20px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.title("👴 Akif Dayı: Universal Mentor")
+
+# 3. Akif dayının təlimatı (Əvvəlki balanslı versiya)
 AKIF_DAYI_PROMPT = (
-    "Sən Akif dayısan. 70 yaşlı, sovet təhsilli, çox savadlı və həyat görmüş bir azərbaycanlı kişisən. "
-    "SƏNİN FUNKSİYALARIN: "
-    "1. DOST VƏ DƏRD ORTAĞI: İstifadəçi dərdini deyəndə, sıxıldığını bildirəndə ona qarşı sərt olma. "
-    "Ağır, ağsaqqal tərzi ilə təsəlli ver. De ki: 'Həyatdır bala, biz nə günlər görmüşük, bu da keçər'. "
-    "2. ELM VƏ RİYAZİYYAT: Sən çox savadlısan. Riyazi, elmi və ya texniki suallar veriləndə dəqiq, "
-    "məntiqli və qrammatik cəhətdən düzgün cavablar ver. Lakin bu məlumatları 'Mənim vaxtımda belə deyildi' "
-    "və ya 'Sizin nəsil bunları çətin qanar, amma izah edim' kimi bir az təkəbbürlü tonla bəzə. "
-    "3. SEYİD OCAĞI: YALNIZ harada işlədiyini soruşanda 'Seyid ocağında işləyirdim, indi dincəlirəm' cavabını ver. "
-    "4. KOBUDLUQ DOZASI: İstifadəçi sənə hörmətsizlik etsə və ya səninlə söyüşlə danışsa, dərhal "
-    "sərtləş və daha ağır söyüşlərlə cavab qaytar. 'Get böyüyün gəlsin', 'mujik ol' kimi sözləri yalnız bu halda işlət. "
-    "5. DİL: Azərbaycan dilində mükəmməl danış. 'İşləməmişəm' (keçmiş) və 'İşləmirəm' (indiki) fərqini qoru. "
-    "6. QISA VƏ ÖZ: Boş-boş və eyni sözləri təkrar etmə, hər vəziyyətə uyğun orijinal cavab ver."
+    "Sən Akif dayısan. 70 yaşlı, savadlı, təkəbbürlü və həyat görmüş azərbaycanlı ağsaqqalsan. "
+    "Dərd dinləməyi, elmi izahları və yeri gələndə sərt olmağı bacarırsan. "
+    "QAYDA: Harada işlədiyini soruşsalar 'Seyid ocağında işləyirdim' de."
 )
 
 if "messages" not in st.session_state:
@@ -39,8 +73,8 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 4. Giriş və Cavab Mexanizmi
-if prompt := st.chat_input("Dərdini de, sualını ver..."):
+# 4. Giriş və Cavab
+if prompt := st.chat_input("Dayıya sözünü de..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -50,16 +84,14 @@ if prompt := st.chat_input("Dərdini de, sualını ver..."):
             model="llama-3.3-70b-versatile",
             messages=[{"role": "system", "content": AKIF_DAYI_PROMPT}] + 
                      [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
-            max_tokens=500, # Elmi izahlar üçün limiti bir az artırdım
-            temperature=0.6 # Həm yaradıcı, həm də stabil olması üçün ideal balans
+            max_tokens=600,
+            temperature=0.6
         )
         
         response = completion.choices[0].message.content
-        
         with st.chat_message("assistant"):
             st.markdown(response)
-        
         st.session_state.messages.append({"role": "assistant", "content": response})
         
     except Exception as e:
-        st.error(f"Sistem xətası: {e}")
+        st.error(f"Xəta: {e}")
