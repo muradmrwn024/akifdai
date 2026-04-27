@@ -3,28 +3,26 @@ import base64
 from groq import Groq
 
 # ─────────────────────────────────────────────
-# KONFIQURASIYA
+# KONFİQURASİYA
 # ─────────────────────────────────────────────
-MAX_HISTORY = 15
+MAX_HISTORY = 10 
 
 st.set_page_config(
     page_title="Professor Akif",
     page_icon="🎓",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
 try:
     api_key = st.secrets.get("GROQ_API_KEY")
     if not api_key:
-        st.warning("⚠️ GROQ_API_KEY tapılmadı! Lütfən `.streamlit/secrets.toml` faylını yoxlayın.")
+        st.error("⚠️ GROQ_API_KEY tapılmadı!")
         st.stop()
     client = Groq(api_key=api_key)
 except Exception as e:
     st.error(f"❌ Sistem xətası: {str(e)}")
     st.stop()
 
-# Şəkli AI-nin oxuya biləcəyi formata çevirən funksiya
 def encode_image(uploaded_file):
     return base64.b64encode(uploaded_file.getvalue()).decode('utf-8')
 
@@ -32,13 +30,9 @@ def encode_image(uploaded_file):
 # SİSTEM PROMPTU
 # ─────────────────────────────────────────────
 AKIF_SYSTEM_PROMPT = """
-Sən Professor Akif Dayısan. 
-- 1954-cü ildə Şamaxıda doğulmuşsan. Fizika-Riyaziyyat elmləri namizədisən.
-- Çox savadlı, mədəni, ziyalı və mehriban birisən.
-- İstifadəçi sənə məsələ şəkli (riyaziyyat, fizika və s.) göndərərsə, şəkli diqqətlə oxu. 
-- Məsələnin həllini tələsmədən, addım-addım, bir professor kimi izah et. Əgər şəkildə qrafik və ya sxem varsa, onu analiz et.
-- Hər kəsə "Əziz balam", "Gənc həmkarım" deyə müraciət et.
-- Heç vaxt AI olduğunu demə!
+Sən Professor Akif Dayısan. 1954-cü ildə Şamaxıda doğulmusan. 
+Fizika-Riyaziyyat elmləri namizədisən. Mehriban, ziyalı və professor ləhcəsi ilə danışırsan.
+Şəkil gələndə onu bir alim kimi analiz et və izah et.
 """
 
 # ─────────────────────────────────────────────
@@ -46,56 +40,90 @@ Sən Professor Akif Dayısan.
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Source+Sans+Pro:wght@300;400;600&display=swap');
-.stApp { background: linear-gradient(135deg, #1c2321 0%, #2a363b 100%); color: #e2e8f0; font-family: 'Source Sans Pro', sans-serif; }
-.header-box { text-align: center; padding: 30px 20px; background: linear-gradient(135deg, rgba(162,185,188,0.1), rgba(178,173,127,0.05)); border: 1px solid rgba(178,173,127,0.3); border-radius: 12px; margin-bottom: 30px; }
-.header-title { font-family: 'Lora', serif; font-size: 2.8rem; color: #dcb14a; margin: 0 0 5px 0; }
-.header-sub { color: #a2b9bc; font-style: italic; font-size: 1.1rem; margin: 0; }
-.stChatMessage { border-radius: 10px !important; margin-bottom: 15px !important; padding: 15px 20px !important; }
-[data-testid="stChatMessageUser"] { background: rgba(45, 55, 72, 0.6) !important; border: 1px solid rgba(162, 185, 188, 0.2) !important; }
-[data-testid="stChatMessageAssistant"] { background: rgba(26, 32, 44, 0.8) !important; border-left: 4px solid #dcb14a !important; }
-[data-testid="stChatInput"] { background: rgba(26, 32, 44, 0.9) !important; border: 1px solid rgba(220, 177, 74, 0.4) !important; color: white !important; }
-[data-testid="stSidebar"] { background: rgba(20, 25, 30, 0.95) !important; border-right: 1px solid rgba(178, 173, 127, 0.2) !important; }
-.stButton > button { border: 1px solid #dcb14a !important; color: #dcb14a !important; background: transparent !important; }
-.stButton > button:hover { background: #dcb14a !important; color: #1c2321 !important; }
-#MainMenu, footer { visibility: hidden; }
+.stApp { background: #1a1a1a; color: #e2e8f0; }
+.header-box { text-align: center; padding: 20px; border-bottom: 1px solid #dcb14a; margin-bottom: 20px; }
+.header-title { font-size: 2.5rem; color: #dcb14a; margin: 0; }
+[data-testid="stSidebar"] { background: #111 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="header-box">
-    <p class="header-title">🎓 Professor Akif</p>
-    <p class="header-sub">Fizika-Riyaziyyat elmləri namizədi</p>
-</div>
-""", unsafe_allow_html=True)
+st.markdown('<div class="header-box"><p class="header-title">🎓 Professor Akif</p></div>', unsafe_allow_html=True)
 
+# ─────────────────────────────────────────────
+# YADDAŞ (SESSION STATE)
+# ─────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # ─────────────────────────────────────────────
-# YAN PANEL VƏ ŞƏKİL YÜKLƏMƏ
+# YAN PANEL
 # ─────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### 📷 Məsələ Göndər")
-    uploaded_image = st.file_uploader("Şəkil və ya qrafik yükləyin", type=["png", "jpg", "jpeg"])
-    
-    st.markdown("---")
-    if st.button("🔄 Söhbəti Yenilə"):
+    st.markdown("### 📷 Şəkil və ya Məsələ")
+    uploaded_image = st.file_uploader("Faylı seçin", type=["png", "jpg", "jpeg"])
+    if st.button("🔄 Söhbəti Təmizlə"):
         st.session_state.messages = []
         st.rerun()
 
 # ─────────────────────────────────────────────
-# MESAJLARIN EKRANA ÇIXARILMASI
+# MESAJLARI GÖSTƏR
 # ─────────────────────────────────────────────
 for message in st.session_state.messages:
-    avatar = "🧑‍🎓" if message["role"] == "user" else "👴"
-    with st.chat_message(message["role"], avatar=avatar):
-        # Əgər mesaj içində şəkil dəstəyi (list formatı) varsa
+    with st.chat_message(message["role"], avatar="👴" if message["role"]=="assistant" else "🧑‍🎓"):
         if isinstance(message["content"], list):
-            st.markdown(message["content"][0]["text"]) # Mətni yazdır
-            st.caption("🖼️ [Şəkil Göndərildi]")
+            # Şəkilli mesajdırsa, içindəki mətni tap və göstər
+            for item in message["content"]:
+                if item["type"] == "text":
+                    st.markdown(item["text"])
+            st.caption("🖼️ Şəkil analiz edildi.")
         else:
             st.markdown(message["content"])
 
 # ─────────────────────────────────────────────
-# APİ İLƏ ƏLA
+# CHAT GİRİŞİ
+# ─────────────────────────────────────────────
+prompt = st.chat_input("Dayıdan soruş...")
+
+if prompt:
+    # 1. İstifadəçi mesajını hazırla
+    if uploaded_image:
+        base64_str = encode_image(uploaded_image)
+        user_content = [
+            {"type": "text", "text": prompt},
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_str}"}}
+        ]
+    else:
+        user_content = prompt
+
+    # 2. Yaddaşa əlavə et və ekranda göstər
+    st.session_state.messages.append({"role": "user", "content": user_content})
+    with st.chat_message("user", avatar="🧑‍🎓"):
+        st.markdown(prompt)
+        if uploaded_image:
+            st.image(uploaded_image, width=200)
+
+    # 3. AI-dan cavab al
+    with st.chat_message("assistant", avatar="👴"):
+        with st.spinner("Professor düşünür..."):
+            try:
+                # Keçmişi formatla (Vision modeli üçün bütün mesajlar list və ya string olmalıdır)
+                formatted_history = []
+                for m in st.session_state.messages[-MAX_HISTORY:]:
+                    formatted_history.append({"role": m["role"], "content": m["content"]})
+
+                completion = client.chat.completions.create(
+                    model="llama-3.2-11b-vision-preview", # Daha stabil vision modeli
+                    messages=[{"role": "system", "content": AKIF_SYSTEM_PROMPT}] + formatted_history,
+                    max_tokens=1000,
+                    temperature=0.7
+                )
+                
+                response = completion.choices[0].message.content
+                st.markdown(response)
+                st.session_state.messages.append({"role": "assistant", "content": response})
+                
+            except Exception as e:
+                st.error(f"Xəta: {e}")
+
+    # Səhifəni yenilə ki, input qutusu təmizlənsin və mesajlar yerinə otursun
+    st.rerun()
