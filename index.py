@@ -1,108 +1,90 @@
 import streamlit as st
-import base64
 from groq import Groq
 
 # ─────────────────────────────────────────────
-# 1. KONFİQURASİYA VƏ API
+# 1. KONFİQURASİYA
 # ─────────────────────────────────────────────
 st.set_page_config(page_title="Professor Akif Dayı", page_icon="🎓", layout="wide")
 
+# API açarını yoxla
 if "GROQ_API_KEY" not in st.secrets:
-    st.error("❌ API açarı tapılmadı! Lütfən secrets bölməsini yoxlayın.")
+    st.error("❌ GROQ_API_KEY tapılmadı!")
     st.stop()
 
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-def encode_image(uploaded_file):
-    return base64.b64encode(uploaded_file.getvalue()).decode('utf-8')
-
 # ─────────────────────────────────────────────
-# 2. SİSTEM PROMPTU
+# 2. SİSTEM PROMPTU (AKİF DAYI ŞƏXSİYYƏTİ)
 # ─────────────────────────────────────────────
+# Burada dayının xarakterini və biliyini qoruyuruq
 AKIF_SYSTEM_PROMPT = """
 Sən Professor Akif Dayısan. 1954-cü ildə Şamaxıda doğulmusan. 
 Fizika-Riyaziyyat elmləri namizədisən. Mehriban, ziyalı və professor ləhcəsi ilə danışırsan.
-Gələn şəkilləri bir alim kimi incələ və ətraflı izah et. Heç vaxt AI olduğunu demə.
+Riyaziyyat, fizika və proqramlaşdırma sahəsində çox savadlısan. 
+İnsanlara "əziz balam", "gənc həmkarım" deyə müraciət edirsən.
+Heç vaxt AI olduğunu demə, sən canlı bir professorsan.
 """
 
 # ─────────────────────────────────────────────
-# 3. YADDAŞ (SESSION STATE)
+# 3. CSS DİZAYN (GÖZƏL GÖRÜNÜŞ)
+# ─────────────────────────────────────────────
+st.markdown("""
+<style>
+    .stApp { background-color: #1a1a1a; color: #e2e8f0; }
+    .header-text { text-align: center; color: #dcb14a; font-family: 'serif'; padding: 20px; border-bottom: 2px solid #dcb14a; }
+    [data-testid="stSidebar"] { background-color: #111 !important; }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown('<h1 class="header-text">🎓 Professor Akif Dayı</h1>', unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────
+# 4. YADDAŞ VƏ SİDEBAR
 # ─────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# ─────────────────────────────────────────────
-# 4. YAN PANEL (SIDEBAR)
-# ─────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### 📷 Şəkil/Məsələ Yüklə")
-    uploaded_file = st.file_uploader("Şəkil seçin...", type=['png', 'jpg', 'jpeg'])
-    if st.button("🔄 Söhbəti Təmizlə"):
+    st.markdown("### 🛠️ İdarəetmə")
+    if st.button("🔄 Söhbəti Sıfırla"):
         st.session_state.messages = []
         st.rerun()
+    st.info("Qeyd: Şəkil funksiyası stabil olmadığı üçün ləğv edildi. Dayı ilə yazı vasitəsilə söhbət edə bilərsiniz.")
 
 # ─────────────────────────────────────────────
-# 5. EKRANDA GÖSTƏRMƏ
+# 5. MESAJLARI GÖSTƏR
 # ─────────────────────────────────────────────
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"], avatar="👴" if msg["role"]=="assistant" else "🧑‍🎓"):
-        if isinstance(msg["content"], list):
-            for part in msg["content"]:
-                if part["type"] == "text":
-                    st.markdown(part["text"])
-        else:
-            st.markdown(msg["content"])
+    avatar = "👴" if msg["role"] == "assistant" else "🧑‍🎓"
+    with st.chat_message(msg["role"], avatar=avatar):
+        st.markdown(msg["content"])
 
 # ─────────────────────────────────────────────
-# 6. ƏSAS MƏNTİQ
+# 6. CHAT GİRİŞİ VƏ CAVAB (STABİL MODEL)
 # ─────────────────────────────────────────────
-prompt = st.chat_input("Sualınızı bura yazın...")
+prompt = st.chat_input("Dayıdan bir şey soruş...")
 
 if prompt:
-    # İstifadəçi mesajını hazırla
-    if uploaded_file:
-        img_b64 = encode_image(uploaded_file)
-        user_content = [
-            {"type": "text", "text": prompt},
-            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}
-        ]
-    else:
-        user_content = [{"type": "text", "text": prompt}]
-
-    st.session_state.messages.append({"role": "user", "content": user_content})
-    
+    # İstifadəçi mesajını göstər və yaddaşa yaz
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar="🧑‍🎓"):
         st.markdown(prompt)
-        if uploaded_file:
-            st.image(uploaded_file, width=300)
 
-    # Akif Dayı Cavab Verir
+    # Akif Dayı cavab verir
     with st.chat_message("assistant", avatar="👴"):
         with st.spinner("Professor düşünür..."):
             try:
-                # KRİTİK DƏYİŞİKLİK: Hazırda Groq-da ən stabil vision modeli budur
-                # Əgər bu da xəta versə "llama-3.2-11b-vision-preview" yazaraq yoxlayın
-                model_name = "llama-3.2-90b-vision-preview" 
-                
+                # ƏN STABİL MƏTN MODELİ: llama-3.3-70b-versatile
                 response = client.chat.completions.create(
-                    model=model_name,
-                    messages=[{"role": "system", "content": AKIF_SYSTEM_PROMPT}] + st.session_state.messages[-10:],
-                    max_tokens=1024
+                    model="llama-3.3-70b-versatile",
+                    messages=[{"role": "system", "content": AKIF_SYSTEM_PROMPT}] + st.session_state.messages[-15:],
+                    temperature=0.7,
+                    max_tokens=2048
                 )
                 
-                final_text = response.choices[0].message.content
-                st.markdown(final_text)
-                st.session_state.messages.append({"role": "assistant", "content": final_text})
+                full_response = response.choices[0].message.content
+                st.markdown(full_response)
+                st.session_state.messages.append({"role": "assistant", "content": full_response})
                 
             except Exception as e:
-                # Əgər 90b yenə xəta versə, avtomatik 11b-ni yoxlamaq üçün ehtiyat plan:
-                try:
-                    response = client.chat.completions.create(
-                        model="llama-3.2-11b-vision-preview",
-                        messages=[{"role": "system", "content": AKIF_SYSTEM_PROMPT}] + st.session_state.messages[-10:],
-                    )
-                    final_text = response.choices[0].message.content
-                    st.markdown(final_text)
-                    st.session_state.messages.append({"role": "assistant", "content": final_text})
-                except:
-                    st.error(f"Xəta: Modellər hazırda Groq tərəfindən yenilənir. Bir az sonra yoxlayın. {str(e)}")
+                st.error(f"Bağışla bala, bir texniki xəta oldu: {str(e)}")
